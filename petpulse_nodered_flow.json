@@ -1,0 +1,365 @@
+[
+  {
+    "id": "tab_petpulse",
+    "type": "tab",
+    "label": "PetPulse - Coleira IoT",
+    "disabled": false,
+    "info": "Dashboard da coleira inteligente PetPulse - Challenge FIAP 2026 / CLYVO VET"
+  },
+
+  {
+    "id": "mqtt_in_telemetria",
+    "type": "mqtt in",
+    "z": "tab_petpulse",
+    "name": "Recebe Telemetria",
+    "topic": "petpulse/coleira/telemetria",
+    "qos": "0",
+    "datatype": "auto",
+    "broker": "broker_hivemq",
+    "x": 130,
+    "y": 80,
+    "wires": [["parse_telemetria"]]
+  },
+
+  {
+    "id": "mqtt_in_alerta",
+    "type": "mqtt in",
+    "z": "tab_petpulse",
+    "name": "Recebe Alertas",
+    "topic": "petpulse/coleira/alerta",
+    "qos": "0",
+    "datatype": "auto",
+    "broker": "broker_hivemq",
+    "x": 130,
+    "y": 160,
+    "wires": [["parse_alerta"]]
+  },
+
+  {
+    "id": "parse_telemetria",
+    "type": "json",
+    "z": "tab_petpulse",
+    "name": "Parse JSON Telemetria",
+    "property": "payload",
+    "action": "obj",
+    "pretty": false,
+    "x": 340,
+    "y": 80,
+    "wires": [["split_campos"]]
+  },
+
+  {
+    "id": "parse_alerta",
+    "type": "json",
+    "z": "tab_petpulse",
+    "name": "Parse JSON Alerta",
+    "property": "payload",
+    "action": "obj",
+    "pretty": false,
+    "x": 340,
+    "y": 160,
+    "wires": [["formata_alerta"]]
+  },
+
+  {
+    "id": "split_campos",
+    "type": "function",
+    "z": "tab_petpulse",
+    "name": "Separa campos para gauges",
+    "func": "// Extrai cada campo e encaminha para os nós de gauge/chart\nvar payload = msg.payload;\n\n// Salva estado global para uso em outros nós\nflow.set('ultima_leitura', payload);\n\n// Mensagem para gauge BPM\nvar msgBpm = { payload: payload.frequenciaCardiaca };\n\n// Mensagem para gauge atividade\nvar msgAtiv = { payload: payload.nivelAtividade };\n\n// Mensagem para gauge pressão sistólica\nvar msgPres = { payload: payload.pressaoSistolica };\n\n// Mensagem para text widget - descrição atividade\nvar msgDescAtiv = { payload: payload.descricaoAtividade };\n\n// Mensagem para chart histórico BPM\nvar msgChart = {\n    payload: payload.frequenciaCardiaca,\n    topic: 'BPM'\n};\n\n// Mensagem para tabela de leituras\nvar msgTabela = {\n    payload: [\n        [payload.frequenciaCardiaca, payload.descricaoAtividade, payload.pressaoSistolica + '/' + payload.pressaoDiastolica, new Date().toLocaleTimeString('pt-BR')]\n    ]\n};\n\nreturn [[msgBpm], [msgAtiv], [msgPres], [msgDescAtiv], [msgChart], [msgTabela]];",
+    "outputs": 6,
+    "x": 570,
+    "y": 80,
+    "wires": [
+      ["gauge_bpm"],
+      ["gauge_atividade"],
+      ["gauge_pressao"],
+      ["text_atividade"],
+      ["chart_bpm"],
+      ["table_leituras"]
+    ]
+  },
+
+  {
+    "id": "formata_alerta",
+    "type": "function",
+    "z": "tab_petpulse",
+    "name": "Formata alerta para UI",
+    "func": "var a = msg.payload;\nvar nivel = a.nivel;\nvar icone = nivel === 'CRITICO' ? '🚨' : '⚠️';\nvar texto = icone + ' [' + nivel + '] ' + a.pet + ' — ' + a.motivo + \n            ' | BPM: ' + a.bpm + \n            ' | Pressão: ' + a.pressaoSis + 'mmHg';\nmsg.payload = texto;\nreturn msg;",
+    "x": 550,
+    "y": 160,
+    "wires": [["notif_alerta", "debug_alerta"]]
+  },
+
+  {
+    "id": "gauge_bpm",
+    "type": "ui_gauge",
+    "z": "tab_petpulse",
+    "name": "Frequência Cardíaca",
+    "group": "grp_vitais",
+    "order": 1,
+    "width": 6,
+    "height": 3,
+    "gtype": "gage",
+    "title": "❤️ Frequência Cardíaca",
+    "label": "bpm",
+    "format": "{{value}}",
+    "min": 0,
+    "max": 220,
+    "colors": ["#00b500", "#e6e600", "#ca3838"],
+    "seg1": 60,
+    "seg2": 140,
+    "x": 850,
+    "y": 40,
+    "wires": []
+  },
+
+  {
+    "id": "gauge_atividade",
+    "type": "ui_gauge",
+    "z": "tab_petpulse",
+    "name": "Nível de Atividade",
+    "group": "grp_vitais",
+    "order": 2,
+    "width": 6,
+    "height": 3,
+    "gtype": "gage",
+    "title": "🐾 Nível de Atividade",
+    "label": "%",
+    "format": "{{value}}",
+    "min": 0,
+    "max": 100,
+    "colors": ["#b0e0ff", "#0075c9", "#003a7d"],
+    "seg1": 30,
+    "seg2": 60,
+    "x": 850,
+    "y": 80,
+    "wires": []
+  },
+
+  {
+    "id": "gauge_pressao",
+    "type": "ui_gauge",
+    "z": "tab_petpulse",
+    "name": "Pressão Sistólica",
+    "group": "grp_vitais",
+    "order": 3,
+    "width": 6,
+    "height": 3,
+    "gtype": "gage",
+    "title": "💉 Pressão Sistólica",
+    "label": "mmHg",
+    "format": "{{value}}",
+    "min": 60,
+    "max": 220,
+    "colors": ["#00b500", "#e6e600", "#ca3838"],
+    "seg1": 100,
+    "seg2": 160,
+    "x": 850,
+    "y": 120,
+    "wires": []
+  },
+
+  {
+    "id": "text_atividade",
+    "type": "ui_text",
+    "z": "tab_petpulse",
+    "name": "Descrição da Atividade",
+    "group": "grp_vitais",
+    "order": 4,
+    "width": 6,
+    "height": 1,
+    "format": "🏃 {{msg.payload | uppercase}}",
+    "label": "Estado atual",
+    "color": "",
+    "bgcolor": "",
+    "x": 850,
+    "y": 160,
+    "wires": []
+  },
+
+  {
+    "id": "chart_bpm",
+    "type": "ui_chart",
+    "z": "tab_petpulse",
+    "name": "Histórico BPM",
+    "group": "grp_historico",
+    "order": 1,
+    "width": 12,
+    "height": 5,
+    "label": "📈 Histórico - Frequência Cardíaca",
+    "chartType": "line",
+    "legend": "false",
+    "xformat": "HH:mm:ss",
+    "interpolate": "bezier",
+    "nodata": "Aguardando dados...",
+    "dot": false,
+    "ymin": "0",
+    "ymax": "220",
+    "removeOlder": 1,
+    "removeOlderUnit": "3600",
+    "removeOlderPoints": "100",
+    "colors": ["#e83e3e", "#aaffa9", "#ff9faf"],
+    "x": 850,
+    "y": 200,
+    "wires": [[]]
+  },
+
+  {
+    "id": "table_leituras",
+    "type": "ui_table",
+    "z": "tab_petpulse",
+    "name": "Últimas Leituras",
+    "group": "grp_historico",
+    "order": 2,
+    "width": 12,
+    "height": 5,
+    "outputs": 0,
+    "cts": false,
+    "title": "📋 Últimas Leituras",
+    "columns": [
+      { "field": "bpm",       "title": "BPM",        "width": "80px",  "align": "center", "format": "" },
+      { "field": "atividade", "title": "Atividade",  "width": "120px", "align": "center", "format": "" },
+      { "field": "pressao",   "title": "Pressão",    "width": "100px", "align": "center", "format": "" },
+      { "field": "hora",      "title": "Horário",    "width": "100px", "align": "center", "format": "" }
+    ],
+    "x": 850,
+    "y": 240,
+    "wires": []
+  },
+
+  {
+    "id": "notif_alerta",
+    "type": "ui_toast",
+    "z": "tab_petpulse",
+    "position": "top right",
+    "displayTime": "5",
+    "highlight": "",
+    "sendall": true,
+    "outputs": 0,
+    "ok": "OK",
+    "cancel": "",
+    "raw": false,
+    "name": "Notificação de Alerta",
+    "x": 820,
+    "y": 160,
+    "wires": []
+  },
+
+  {
+    "id": "debug_alerta",
+    "type": "debug",
+    "z": "tab_petpulse",
+    "name": "Debug Alertas",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "x": 820,
+    "y": 200,
+    "wires": []
+  },
+
+  {
+    "id": "inject_config",
+    "type": "inject",
+    "z": "tab_petpulse",
+    "name": "Config: 5s",
+    "props": [{ "p": "payload" }, { "p": "topic", "vt": "str" }],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "petpulse/coleira/config",
+    "payload": "{\"intervaloMs\":5000}",
+    "payloadType": "str",
+    "x": 130,
+    "y": 300,
+    "wires": [["mqtt_out_config"]]
+  },
+
+  {
+    "id": "inject_config_10s",
+    "type": "inject",
+    "z": "tab_petpulse",
+    "name": "Config: 10s",
+    "props": [{ "p": "payload" }, { "p": "topic", "vt": "str" }],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "topic": "petpulse/coleira/config",
+    "payload": "{\"intervaloMs\":10000}",
+    "payloadType": "str",
+    "x": 130,
+    "y": 340,
+    "wires": [["mqtt_out_config"]]
+  },
+
+  {
+    "id": "mqtt_out_config",
+    "type": "mqtt out",
+    "z": "tab_petpulse",
+    "name": "Envia Config Intervalo",
+    "topic": "",
+    "qos": "",
+    "retain": "",
+    "broker": "broker_hivemq",
+    "x": 360,
+    "y": 320,
+    "wires": []
+  },
+
+  {
+    "id": "broker_hivemq",
+    "type": "mqtt-broker",
+    "name": "HiveMQ Public",
+    "broker": "broker.hivemq.com",
+    "port": "1883",
+    "clientid": "nodered-petpulse-dashboard",
+    "usetls": false,
+    "compatmode": false,
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": ""
+  },
+
+  {
+    "id": "grp_vitais",
+    "type": "ui_group",
+    "name": "🐾 Sinais Vitais — Rex",
+    "tab": "ui_tab_petpulse",
+    "order": 1,
+    "disp": true,
+    "width": "12",
+    "collapse": false
+  },
+
+  {
+    "id": "grp_historico",
+    "type": "ui_group",
+    "name": "📊 Histórico & Leituras",
+    "tab": "ui_tab_petpulse",
+    "order": 2,
+    "disp": true,
+    "width": "12",
+    "collapse": false
+  },
+
+  {
+    "id": "ui_tab_petpulse",
+    "type": "ui_tab",
+    "name": "PetPulse",
+    "icon": "pets",
+    "order": 1,
+    "disp": true
+  }
+]

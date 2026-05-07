@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "author": "PetPulse - FIAP Challenge 2026",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot1",
+      "top": -100,
+      "left": 200,
+      "attrs": { "label": "Freq. Cardiaca (bpm)" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot2",
+      "top": 0,
+      "left": 200,
+      "attrs": { "label": "Nivel Atividade" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot3",
+      "top": 100,
+      "left": 200,
+      "attrs": { "label": "Pressao Sist. (mmHg)" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledOK",
+      "top": -60,
+      "left": -150,
+      "attrs": { "color": "green", "label": "OK" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledAlerta",
+      "top": 0,
+      "left": -150,
+      "attrs": { "color": "yellow", "label": "Alerta" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "ledCritico",
+      "top": 60,
+      "left": -150,
+      "attrs": { "color": "red", "label": "Critico" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "res1",
+      "top": -60,
+      "left": -100,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "res2",
+      "top": 0,
+      "left": -100,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "res3",
+      "top": 60,
+      "left": -100,
+      "attrs": { "value": "220" }
+    }
+  ],
+  "connections": [
+    ["pot1:SIG", "esp:34", "green", []],
+    ["pot1:VCC", "esp:3V3", "red",   []],
+    ["pot1:GND", "esp:GND.1", "black", []],
+
+    ["pot2:SIG", "esp:35", "blue", []],
+    ["pot2:VCC", "esp:3V3", "red",  []],
+    ["pot2:GND", "esp:GND.1", "black", []],
+
+    ["pot3:SIG", "esp:32", "orange", []],
+    ["pot3:VCC", "esp:3V3", "red",   []],
+    ["pot3:GND", "esp:GND.1", "black", []],
+
+    ["esp:26", "res1:1", "green",  []],
+    ["res1:2", "ledOK:A", "green", []],
+    ["ledOK:C", "esp:GND.1", "black", []],
+
+    ["esp:27", "res2:1", "yellow",  []],
+    ["res2:2", "ledAlerta:A", "yellow", []],
+    ["ledAlerta:C", "esp:GND.1", "black", []],
+
+    ["esp:14", "res3:1", "red",  []],
+    ["res3:2", "ledCritico:A", "red", []],
+    ["ledCritico:C", "esp:GND.1", "black", []]
+  ],
+  "dependencies": {}
+}
