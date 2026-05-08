@@ -3,6 +3,7 @@
  *  PetPulse - Coleira Inteligente IoT
  *  Disciplina: Disruptive Architectures
  *  Challenge FIAP 2026 - CLYVO VET
+ *  https://wokwi.com/projects/383981664359646209
  * =========================================
  *
  * Simula os sensores da coleira:
@@ -56,9 +57,9 @@ const int PIN_SENSOR_BPM        = 34;  // Potenciômetro 1 → frequência card�
 const int PIN_SENSOR_ATIVIDADE  = 35;  // Potenciômetro 2 → nível de atividade
 const int PIN_SENSOR_PRESSAO    = 32;  // Potenciômetro 3 → pressão sistólica
 
-const int LED_OK       = 26;  // verde
-const int LED_ALERTA   = 27;  // amarelo
-const int LED_CRITICO  = 14;  // vermelho
+const int LED_OK       = 18;  // verde
+const int LED_ALERTA   = 19;  // amarelo
+const int LED_CRITICO  = 21;  // vermelho
 
 // =========================
 // IDENTIFICAÇÃO DO DISPOSITIVO
