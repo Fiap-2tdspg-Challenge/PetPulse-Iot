@@ -1,2 +1,2 @@
-PubSubClient
 ArduinoJson
+MPU6050_light
