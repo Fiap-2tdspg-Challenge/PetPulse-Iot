@@ -5,5 +5,5 @@
   "fqbn": "esp32:esp32:esp32",
   "hardwareFolders": "C:\\Users\\userr\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8,C:\\Users\\userr\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8",
   "otherLibrariesFolders": "C:\\Users\\userr\\OneDrive\\Documentos\\Arduino\\libraries",
-  "sketchLocation": "C:\\Users\\userr\\Downloads\\petpulse_collar"
+  "sketchLocation": "C:\\Users\\userr\\Downloads\\petpulse_collar\\PetPulse-Iot"
 }
