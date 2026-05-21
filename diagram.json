@@ -84,7 +84,7 @@
     ["res1:2", "ledOK:A", "green", []],
     ["esp:19", "res2:1", "yellow", []],
     ["res2:2", "ledAlerta:A", "gold", []],
-    ["esp:21", "res3:1", "red",    []],
+    ["esp:5", "res3:1", "red",    []],
     ["res3:2", "ledCritico:A", "red", []],
 
     ["esp:GND.2", "ledOK:C",      "black", ["v-4.7", "h67.44", "v38.4", "h124.4"]],

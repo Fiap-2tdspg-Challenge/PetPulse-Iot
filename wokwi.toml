@@ -1,4 +1,7 @@
 [wokwi]
 version = 1
-elf = "build/esp32.esp32.esp32/petpulse_collar.ino.elf"
-firmware = "build/esp32.esp32.esp32/petpulse_collar.ino.bin"
+elf = "build/esp32.esp32.esp32/PetPulse-Iot.ino.elf"
+firmware = "build/esp32.esp32.esp32/PetPulse-Iot.ino.bin"
+
+[net]
+enabled = true
