@@ -27,11 +27,13 @@
 #include <Wire.h>
 #include <MPU6050_light.h>
 #include <ArduinoJson.h>
+#include <LiquidCrystal_I2C.h>
 
 #define WIFI_SSID     "Wokwi-GUEST"
 #define WIFI_PASSWORD ""
 #define WIFI_CHANNEL  6
 
+LiquidCrystal_I2C ldc(0x27, 16, 2);
 WebServer server(80);
 MPU6050 mpu(Wire);
 
@@ -363,6 +365,9 @@ void handleRoot() {
 void setup() {
   Serial.begin(115200);
   Serial.println("\n===== PetPulse - Coleira IoT =====");
+  ldc.init();
+  ldc.backlight();
+
 
   pinMode(LED_OK,      OUTPUT);
   pinMode(LED_ALERTA,  OUTPUT);
@@ -398,6 +403,9 @@ void setup() {
   Serial.println("[WiFi] Abra http://localhost:8280 no navegador!");
 
   // Rotas
+  server.sendHeader("Acess-Controll-Allow-Origin", "*");
+  server.sendHeader("Acess-Controll-Allow-Methods", "GET, OPTIONS");
+  server.sendHeader("Acess-Controll-Allow-Header", "Content-Type");
   server.on("/",          handleRoot);
   server.on("/api/dados", handleApiDados);
   server.begin();
@@ -412,6 +420,7 @@ void setup() {
 void loop() {
   server.handleClient();
   delay(2);
+  ldc.print(WiFi.localIP());
 
   if (millis() - lastRead >= INTERVALO) {
     lastRead = millis();

@@ -69,32 +69,39 @@
       "left": 59.92,
       "rotate": 180,
       "attrs": {}
+    },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "lcd1",
+      "top": 380.8,
+      "left": 197.6,
+      "attrs": { "pins": "i2c", "address": "0x27" }
     }
   ],
   "connections": [
-    ["pot1:SIG", "esp:34", "green",  ["h114.8", "v-91.3"]],
-    ["pot2:SIG", "esp:35", "blue",   ["h96", "v33.9"]],
-
-    ["esp:3V3", "pot1:VCC", "red",   ["h-18.81", "v-62.3"]],
-    ["pot2:VCC", "pot1:VCC", "red",  ["h19.2", "v-76"]],
-    ["pot1:GND", "esp:GND.2", "black", ["h240", "v9.6"]],
-    ["pot2:GND", "pot1:GND", "black", ["h38.4", "v-76.8"]],
-
-    ["esp:18", "res1:1", "green",  []],
-    ["res1:2", "ledOK:A", "green", []],
-    ["esp:19", "res2:1", "yellow", []],
-    ["res2:2", "ledAlerta:A", "gold", []],
-    ["esp:5", "res3:1", "red",    []],
-    ["res3:2", "ledCritico:A", "red", []],
-
-    ["esp:GND.2", "ledOK:C",      "black", ["v-4.7", "h67.44", "v38.4", "h124.4"]],
-    ["esp:GND.2", "ledAlerta:C",  "black", ["v-4.7", "h67.44", "v38.4", "h86.4"]],
-    ["esp:GND.2", "ledCritico:C", "black", ["v-4.7", "h67.44", "v38.4", "h28.8"]],
-
-    ["imu1:SCL", "esp:22", "green", ["v56.16", "h76.48", "v57.6"]],
-    ["imu1:SDA", "esp:21", "green", ["v36.96", "h76.48", "v96", "h-28.8", "v9.6"]],
-    ["imu1:VCC", "esp:3V3", "red",  ["v8.16", "h-29.12"]],
-    ["imu1:GND", "esp:GND.2", "black", ["v27.36", "h-0.32"]]
+    [ "pot1:SIG", "esp:34", "green", [ "h114.8", "v-91.3" ] ],
+    [ "pot2:SIG", "esp:35", "blue", [ "h96", "v33.9" ] ],
+    [ "esp:3V3", "pot1:VCC", "red", [ "h-18.81", "v-62.3" ] ],
+    [ "pot2:VCC", "pot1:VCC", "red", [ "h19.2", "v-76" ] ],
+    [ "pot1:GND", "esp:GND.2", "black", [ "h240", "v9.6" ] ],
+    [ "pot2:GND", "pot1:GND", "black", [ "h38.4", "v-76.8" ] ],
+    [ "esp:18", "res1:1", "green", [] ],
+    [ "res1:2", "ledOK:A", "green", [] ],
+    [ "esp:19", "res2:1", "yellow", [] ],
+    [ "res2:2", "ledAlerta:A", "gold", [] ],
+    [ "esp:5", "res3:1", "red", [] ],
+    [ "res3:2", "ledCritico:A", "red", [] ],
+    [ "esp:GND.2", "ledOK:C", "black", [ "v-4.7", "h67.44", "v38.4", "h124.4" ] ],
+    [ "esp:GND.2", "ledAlerta:C", "black", [ "v-4.7", "h67.44", "v38.4", "h86.4" ] ],
+    [ "esp:GND.2", "ledCritico:C", "black", [ "v-4.7", "h67.44", "v38.4", "h28.8" ] ],
+    [ "imu1:SCL", "esp:22", "green", [ "v56.16", "h76.48", "v57.6" ] ],
+    [ "imu1:SDA", "esp:21", "green", [ "v36.96", "h76.48", "v96", "h-28.8", "v9.6" ] ],
+    [ "imu1:VCC", "esp:3V3", "red", [ "v8.16", "h-29.12" ] ],
+    [ "imu1:GND", "esp:GND.2", "black", [ "v27.36", "h-0.32" ] ],
+    [ "lcd1:VCC", "esp:3V3", "red", [] ],
+    [ "lcd1:GND", "esp:GND.2", "black", [] ],
+    [ "lcd1:SCL", "esp:22", "green", [] ],
+    [ "lcd1:SDA", "esp:21", "blue", [] ]
   ],
   "dependencies": {}
 }
