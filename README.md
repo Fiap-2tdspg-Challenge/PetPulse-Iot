@@ -1,27 +1,90 @@
-# 🐾 PetPulse — Coleira Inteligente IoT
+ 🐾 PetPulse — Coleira Inteligente IoT
 ### Challenge FIAP 2026 · CLYVO VET · Disruptive Architectures
 
 ---
 
-## 📌 Visão Geral
+## 🐕 O Problema
 
-A **PetPulse** é uma coleira IoT que monitora continuamente os sinais vitais do pet e transmite os dados em tempo real via **HTTP/WebServer** embutido no ESP32. O dispositivo integra sensores de frequência cardíaca, pressão arterial, temperatura corporal e nível de atividade física, além de atuadores sonoros e visuais para alertas imediatos — sem depender de broker externo ou infraestrutura adicional.
+Donos de pets e clínicos veterinários enfrentam um desafio crítico: **a maioria das doenças graves em cães só é detectada quando os sintomas já são visíveis** — o que frequentemente significa que o animal já está em sofrimento há horas ou dias.
 
-O dashboard é servido diretamente pelo ESP32 na porta 80, acessível via navegador, com atualização automática a cada 3 segundos.
+Condições como **taquicardia, hipertensão e febre** são silenciosas no início. Um cão com frequência cardíaca de 170 bpm em repouso pode parecer normal para um tutor leigo. Infecções que começam com temperatura de 39.8°C passam despercebidas até o quadro se agravar.
+
+O atendimento veterinário reativo — só quando o animal apresenta sinais externos — gera:
+- Diagnósticos tardios e tratamentos mais custosos
+- Maior sofrimento animal desnecessário
+- Dificuldade do tutor em justificar consultas preventivas sem dados objetivos
+
+**A PetPulse resolve isso com monitoramento contínuo e passivo**, fornecendo dados clínicos em tempo real diretamente do animal — sem depender da observação humana.
 
 ---
 
-## 🔧 Tecnologias Utilizadas
+## 💡 Por que IoT?
 
-| Camada | Tecnologia |
-|---|---|
-| Hardware | ESP32 DevKit V1 (simulado no Wokwi) |
-| Sensores | MPU6050 (aceleração/atividade), DS18B20 (temperatura), 2× Potenciômetros (BPM e pressão) |
-| Atuadores | 3× LEDs, Buzzer passivo (PWM via LEDC), LCD I2C 16×2 |
-| Protocolo | HTTP (WebServer na porta 80) |
-| Dashboard | HTML/CSS/JS + Chart.js — servido pelo próprio ESP32 |
-| Serialização | JSON manual (sem biblioteca externa) |
-| Simulador | Wokwi (web ou VS Code com extensão) |
+O monitoramento contínuo de sinais vitais exige que o dispositivo esteja **no corpo do animal, o tempo todo, transmitindo dados automaticamente**. Isso é por definição o domínio de IoT:
+
+- **Sensores embarcados** capturam dados fisiológicos sem intervenção humana
+- **Processamento local no ESP32** aplica lógica clínica (faixas normais, cruzamento de dados) diretamente no dispositivo — sem depender de nuvem para decisões críticas
+- **Conectividade Wi-Fi** permite que os dados cheguem ao tutor ou clínica em tempo real
+- **Atuadores físicos** (buzzer, LEDs) garantem alertas mesmo sem acesso ao dashboard
+
+Uma solução puramente manual (termômetro, esfigmomanômetro, consulta periódica) captura no máximo um instantâneo. IoT captura a **tendência** — que é onde o diagnóstico precoce acontece.
+
+---
+
+## 📌 Visão Geral da Solução
+
+A **PetPulse** é uma coleira IoT embarcada em ESP32 que monitora continuamente os sinais vitais do pet e os disponibiliza via **HTTP/WebServer** embutido. O dashboard é servido diretamente pelo ESP32 na porta 80, acessível via navegador, com atualização automática a cada 3 segundos.
+
+Não há dependência de broker externo, nuvem ou infraestrutura adicional — o dispositivo é autossuficiente.
+
+---
+
+## 🔧 Tecnologias Utilizadas e Como São Aplicadas
+
+| Camada | Tecnologia | Aplicação no Projeto |
+|---|---|---|
+| Microcontrolador | ESP32 DevKit V1 | Processa sensores, executa lógica clínica, serve o dashboard HTTP |
+| Atividade física | MPU6050 (I2C) | Mede aceleração 3 eixos → classifica repouso, caminhada e corrida |
+| Temperatura corporal | DS18B20 (1-Wire) | Lê temperatura interna do animal com precisão de 0.5°C |
+| Frequência cardíaca | Potenciômetro (GPIO 34) | Simula BPM (40–200) — substituível por sensor MAX30102 em produção |
+| Pressão arterial | Potenciômetro (GPIO 35) | Simula pressão sistólica (80–220 mmHg) — PoC |
+| Alerta visual | 3× LEDs (GPIO 18, 19, 5) | Verde/Amarelo/Vermelho conforme estado clínico |
+| Alerta sonoro | Buzzer passivo (GPIO 13, PWM LEDC) | S.O.S morse no CRÍTICO, bipes no ALERTA, silêncio no OK |
+| Display local | LCD I2C 16×2 (0x27) | Exibe BPM, temperatura, score e estado sem precisar de celular |
+| Dashboard | HTML/CSS/JS + Chart.js | Servido pelo ESP32 — gráfico de vitais, gauge de saúde, alertas |
+| Simulador | Wokwi (web e VS Code) | Permite validar o firmware sem hardware físico |
+
+---
+
+## 🧩 Funcionamento dos Componentes-Chave
+
+### MPU6050 — Classificação de Atividade
+O acelerômetro calcula a magnitude do vetor de aceleração líquida (descontando a gravidade no eixo Z). O resultado é mapeado em três estados:
+- `< 1.5 m/s²` → repouso (0–30% de atividade)
+- `1.5 – 4.0 m/s²` → caminhada (31–60%)
+- `> 4.0 m/s²` → corrida (61–100%)
+
+### DS18B20 — Temperatura com Validação
+Leituras fora do range fisiológico possível (< 30°C ou > 45°C) são descartadas e substituídas pela última leitura válida — evitando falsos alertas por ruído do sensor.
+
+### Cruzamento Inteligente de Dados
+A funcionalidade mais relevante clinicamente:
+> Se o pet estiver em **repouso** (atividade ≤ 30%) e a **temperatura ≥ 39.5°C**, o sistema dispara **CRÍTICO imediatamente** — independente dos outros vitais.
+
+Isso detecta **processos infecciosos em animais quietos**, que são os mais difíceis de identificar visualmente.
+
+### Score de Saúde (0–100)
+Calculado localmente no ESP32 a cada leitura, sem depender de servidor externo:
+
+| Vital | Peso | Critério |
+|---|---|---|
+| Frequência Cardíaca | 35 pts | Desconto proporcional ao desvio |
+| Pressão Sistólica | 30 pts | Idem |
+| Temperatura | 25 pts | Idem + penalidade para febre em repouso |
+| Atividade | 10 pts | Bônus para caminhada, desconto para corrida extrema |
+
+### Buzzer não bloqueante
+O S.O.S morse é executado passo a passo usando `millis()` — o ESP32 nunca trava em `delay()` durante os alertas, mantendo o WebServer e os sensores funcionando normalmente.
 
 ---
 
@@ -29,8 +92,8 @@ O dashboard é servido diretamente pelo ESP32 na porta 80, acessível via navega
 
 | Rota | Método | Descrição |
 |---|---|---|
-| `/` | GET | Dashboard HTML completo com gráficos e gauge de saúde |
-| `/api/dados` | GET | JSON com todas as leituras e score de saúde em tempo real |
+| `/` | GET | Dashboard HTML completo com gráficos e gauge |
+| `/api/dados` | GET | JSON com todas as leituras, score e estado |
 
 ### Exemplo de payload — GET /api/dados
 ```json
@@ -53,86 +116,50 @@ O dashboard é servido diretamente pelo ESP32 na porta 80, acessível via navega
 
 ---
 
-## 🖥️ Circuito (Wokwi)
+## 🖥️ Circuito
 
 | Componente | Pino ESP32 | Função |
 |---|---|---|
 | Potenciômetro 1 | GPIO 34 | Simula frequência cardíaca (40–200 bpm) |
 | Potenciômetro 2 | GPIO 35 | Simula pressão sistólica (80–220 mmHg) |
 | MPU6050 | SDA 21 / SCL 22 | Aceleração e classificação de atividade |
-| DS18B20 | GPIO 4 (1-Wire) | Temperatura corporal (°C) |
-| LED Verde | GPIO 18 | Estado OK |
-| LED Amarelo | GPIO 19 | Estado ALERTA |
-| LED Vermelho | GPIO 5 | Estado CRÍTICO |
-| Buzzer passivo | GPIO 13 | Alertas sonoros estruturados |
-| LCD I2C 16×2 | SDA 21 / SCL 22 | Exibe BPM, score e estado |
-
----
-
-## 🔊 Alertas Sonoros (Buzzer)
-
-| Situação | Padrão Sonoro | Comportamento |
-|---|---|---|
-| Boot | 3 bipes crescentes (800→1200→1600 Hz) | Uma vez, na inicialização |
-| ALERTA | 2 bipes curtos (1800 Hz) | A cada 5 segundos |
-| CRÍTICO | S.O.S morse `... --- ...` | Contínuo e não bloqueante |
-| OK | Silêncio | — |
-
----
-
-## 🧠 Score de Saúde (0–100)
-
-Calculado no ESP32 a cada leitura, cruzando todos os vitais com pesos ponderados:
-
-| Vital | Peso | Lógica |
-|---|---|---|
-| Frequência Cardíaca | 35 pts | Desconto proporcional ao desvio da faixa normal |
-| Pressão Sistólica | 30 pts | Idem |
-| Temperatura Corporal | 25 pts | Idem + penalidade extra para febre em repouso |
-| Nível de Atividade | 10 pts | +5 se caminhada saudável, -5 se corrida intensa |
-
-| Score | Classificação |
-|---|---|
-| 80–100 | ✅ Excelente |
-| 60–79 | 🟢 Bom |
-| 40–59 | 🟡 Atenção |
-| 20–39 | 🟠 Ruim |
-| 0–19 | 🔴 Crítico |
-
----
-
-## 🌡️ Lógica de Cruzamento de Dados
-
-A funcionalidade mais importante do sistema é o **cruzamento de febre com repouso**:
-
-> Se o pet estiver em **repouso** (MPU6050 com aceleração baixa, atividade ≤ 30%) e a **temperatura corporal ≥ 39.5°C**, o sistema dispara estado **CRÍTICO imediatamente** — independente dos outros vitais.
-
-Isso detecta infecções e processos febris que passariam despercebidos em animais quietos.
-
----
-
-## 📊 Parâmetros Normais (cão adulto)
-
-| Sinal Vital | Normal | Alerta | Crítico |
-|---|---|---|---|
-| Frequência Cardíaca | 60–140 bpm | Fora do range | > 180 bpm |
-| Pressão Sistólica | 100–160 mmHg | Fora do range | > 200 mmHg |
-| Temperatura Corporal | 37.5–39.2°C | Fora do range | > 40.5°C ou < 36.0°C |
-| Febre em Repouso | — | > 39.2°C | ≥ 39.5°C + atividade baixa |
+| DS18B20 | GPIO 4 (1-Wire) + pull-up 4.7kΩ | Temperatura corporal |
+| LED Verde | GPIO 18 + resistor 220Ω | Estado OK |
+| LED Amarelo | GPIO 19 + resistor 220Ω | Estado ALERTA |
+| LED Vermelho | GPIO 5 + resistor 220Ω | Estado CRÍTICO |
+| Buzzer passivo | GPIO 13 + resistor 100Ω | Alertas sonoros PWM |
+| LCD I2C 16×2 | SDA 21 / SCL 22 (endereço 0x27) | Display local |
 
 ---
 
 ## 📈 Dashboard HTTP
 
-Acessível em `http://<IP_DO_ESP32>/` (Wokwi web) ou `http://localhost:8280` (VS Code):
+Acessível em `http://<IP_DO_ESP32>/` ou `http://localhost:8280` no VS Code:
 
-- **5 cards de vitais** — BPM, pressão, atividade, aceleração e temperatura com barra de cor dinâmica
-- **Gauge de score de saúde** — semicircular, muda de cor conforme o score
-- **Badge de estado** — NORMAL / ALERTA / CRÍTICO com transição animada
-- **Caixa de alertas** — descreve o motivo, vital e valores no momento do alerta
-- **Gráfico de vitais em tempo real** — Chart.js com 20 pontos rolantes, dois eixos Y (BPM/pressão e temperatura)
-- **Painel do buzzer** — indicador visual animado com estado atual (SILENCIOSO / 2 BIPES / S.O.S ATIVO)
-- **Atualização automática** a cada 3 segundos via `fetch('/api/dados')`
+- **5 cards de vitais** com cor dinâmica por estado clínico
+- **Gauge semicircular** do score de saúde (0–100) com classificação textual
+- **Badge de estado** — NORMAL / ALERTA / CRÍTICO animado
+- **Caixa de alertas** com motivo, vital e valores no momento
+- **Gráfico de vitais** — Chart.js com 20 pontos rolantes, dois eixos Y
+- **Painel do buzzer** — indicador visual do estado sonoro atual
+- **Barra de temperatura** com gradiente de cor fisiológico
+
+---
+
+## ✅ Viabilidade Técnica — Prova de Conceito
+
+Esta entrega é uma **PoC funcional** que valida a arquitetura e a lógica clínica do sistema. O que está implementado e funcionando:
+
+| Funcionalidade | Status |
+|---|---|
+| Leitura de temperatura real (DS18B20) | ✅ Funcionando |
+| Classificação de atividade via acelerômetro | ✅ Funcionando |
+| Lógica de cruzamento febre + repouso | ✅ Funcionando |
+| Score de saúde ponderado | ✅ Funcionando |
+| Dashboard com gráfico em tempo real | ✅ Funcionando |
+| Alertas sonoros não bloqueantes (S.O.S) | ✅ Funcionando |
+| Display LCD local | ✅ Funcionando |
+| API JSON consumível por sistemas externos | ✅ Funcionando |
 
 ---
 
@@ -145,14 +172,14 @@ Acessível em `http://<IP_DO_ESP32>/` (Wokwi web) ou `http://localhost:8280` (VS
 3. Clique em **"+"** → adicione `diagram.json` e cole o conteúdo
 4. Em **Library Manager**, adicione: `MPU6050_light`, `ArduinoJson`, `LiquidCrystal_I2C`, `OneWire`, `DallasTemperature`
 5. Clique em **▶ Start Simulation**
-6. Clique no botão de navegador embutido do Wokwi para abrir o dashboard
+6. Clique no botão de navegador embutido para abrir o dashboard
 
 ### Opção 2 — Wokwi for VS Code
 
 1. Instale a extensão **Wokwi Simulator** no VS Code
-2. Compile o projeto no **Arduino IDE** com a placa **DOIT ESP32 DEVKIT V1**
+2. Compile no **Arduino IDE** com a placa **DOIT ESP32 DEVKIT V1**
 3. Exporte o binário: `Sketch → Export Compiled Binary`
-4. Confirme que o `wokwi.toml` aponta para o `.bin` correto:
+4. Confirme o `wokwi.toml`:
 
 ```toml
 [wokwi]
@@ -165,23 +192,20 @@ from = "0.0.0.0:8280"
 to   = "target:80"
 ```
 
-5. Inicie a simulação com `F1 → Wokwi: Start Simulator`
-6. Acesse o dashboard em `http://localhost:8280`
+5. `F1 → Wokwi: Start Simulator`
+6. Acesse `http://localhost:8280`
 
-> **Atenção:** Se o simulador carregar uma versão antiga, feche a aba do Wokwi Simulator, reabra com `F1 → Wokwi: Start Simulator` e recarregue o browser.
+> **Se o simulador carregar versão antiga:** feche a aba do Wokwi Simulator, reabra com `F1 → Wokwi: Start Simulator` e recarregue o browser.
 
 ---
 
 ## 📁 Arquivos do Projeto
-
 PetPulse-Iot/
 ├── PetPulse-Iot.ino       # Firmware ESP32 completo
 ├── diagram.json           # Circuito Wokwi
-├── libraries.txt          # Dependências do Wokwi web
-├── wokwi.toml             # Configuração do simulador VS Code
+├── libraries.txt          # Dependências Wokwi web
+├── wokwi.toml             # Configuração simulador VS Code
 └── README.md              # Este arquivo
-
----
 
 ### libraries.txt
 MPU6050_light
@@ -194,11 +218,10 @@ DallasTemperature
 
 ## 🔗 Ligação com o Challenge CLYVO VET
 
-Esta entrega IoT resolve o pilar de **monitoramento contínuo** do desafio:
-
-- **Coleta passiva** de sinais vitais sem depender da interação do responsável
-- **Cruzamento inteligente** de dados (febre + repouso) permite detecção precoce de infecções
-- **Score de saúde 0–100** fornece métrica objetiva e padronizada para triagem veterinária
-- **Alertas em tempo real** permitem intervenção clínica proativa
-- O endpoint `/api/dados` pode ser consumido pela **API Java/.NET** do grupo para persistência em banco de dados e geração de histórico longitudinal
-- O histórico de leituras alimenta o módulo de **inteligência** da plataforma CLYVO VET para análise preditiva do estado de saúde do animal
+| Pilar do Challenge | Como a PetPulse contribui |
+|---|---|
+| Monitoramento contínuo | Coleta passiva de sinais vitais 24/7 sem intervenção do tutor |
+| Detecção precoce | Cruzamento febre + repouso detecta infecções antes dos sintomas visíveis |
+| Métrica objetiva | Score 0–100 padroniza a comunicação entre tutor e veterinário |
+| Integração com plataforma | `/api/dados` é consumível pela API Java/.NET para persistência e histórico |
+| Inteligência clínica | Histórico longitudinal de leituras alimenta análise preditiva do estado do animal |
