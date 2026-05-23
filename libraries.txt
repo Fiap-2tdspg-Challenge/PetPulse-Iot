@@ -1,3 +1,5 @@
 ArduinoJson
 MPU6050_light
 LiquidCrystal I2C
+OneWire
+DallasTemperature

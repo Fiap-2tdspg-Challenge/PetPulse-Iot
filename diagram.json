@@ -65,8 +65,8 @@
     {
       "type": "wokwi-mpu6050",
       "id": "imu1",
-      "top": 71.02,
-      "left": 59.92,
+      "top": 69.58,
+      "left": 59.68,
       "rotate": 180,
       "attrs": {}
     },
@@ -76,6 +76,36 @@
       "top": 380.8,
       "left": 197.6,
       "attrs": { "pins": "i2c", "address": "0x27" }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buz1",
+      "top": 98.4,
+      "left": 318.6,
+      "attrs": { "label": "Buzzer SOS/Alerta" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "res4",
+      "top": 235.2,
+      "left": 364.25,
+      "rotate": 90,
+      "attrs": { "value": "100" }
+    },
+    {
+      "type": "wokwi-ds18b20",
+      "id": "ds1",
+      "top": -20.33,
+      "left": 215.28,
+      "attrs": { "label": "Temp. Corporal", "temperature": "39.6" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "res5",
+      "top": 33.6,
+      "left": 373.85,
+      "rotate": 90,
+      "attrs": { "value": "4700" }
     }
   ],
   "connections": [
@@ -101,7 +131,15 @@
     [ "lcd1:VCC", "esp:3V3", "red", [] ],
     [ "lcd1:GND", "esp:GND.2", "black", [] ],
     [ "lcd1:SCL", "esp:22", "green", [] ],
-    [ "lcd1:SDA", "esp:21", "blue", [] ]
+    [ "lcd1:SDA", "esp:21", "blue", [] ],
+    [ "esp:13", "res4:1", "orange", [] ],
+    [ "res4:2", "buz1:1", "orange", [] ],
+    [ "buz1:2", "esp:GND.2", "black", [ "v60", "h-290" ] ],
+    [ "ds1:DQ", "esp:4", "orange", [] ],
+    [ "ds1:VCC", "esp:3V3", "red", [] ],
+    [ "ds1:GND", "esp:GND.2", "black", [] ],
+    [ "ds1:DQ", "res5:1", "orange", [] ],
+    [ "res5:2", "esp:3V3", "red", [] ]
   ],
   "dependencies": {}
 }
