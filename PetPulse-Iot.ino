@@ -13,10 +13,10 @@
  *
  * Atuadores:
  *   - Buzzer passivo (GPIO 13)  → alertas sonoros estruturados
- *     · Boot:    3 bipes curtos crescentes (confirmação de inicialização)
+ *     · Boot:    3 bipes curtos crescentes
  *     · OK:      silencioso
  *     · ALERTA:  2 bipes médios a cada 5s
- *     · CRITICO: padrão S.O.S  (... --- ...) contínuo
+ *     · CRITICO: padrão S.O.S (... --- ...) contínuo
  *
  * Rotas:
  *   GET /          → dashboard HTML completo
@@ -64,8 +64,8 @@ const int PIN_BUZZER  = 13;
 // =========================
 // BUZZER — canal LEDC
 // =========================
-#define BUZZER_CH     0
-#define BUZZER_RES    8
+#define BUZZER_CH   0
+#define BUZZER_RES  8
 
 #define FREQ_BOOT     1000
 #define FREQ_ALERTA   1800
@@ -88,7 +88,7 @@ const float ACCEL_REP = 1.5, ACCEL_CAM = 4.0;
 // Temperatura corporal (°C) — cão adulto
 const float TEMP_NORMAL_MIN = 37.5;
 const float TEMP_NORMAL_MAX = 39.2;
-const float TEMP_FEBRE      = 39.5;  // limiar febril
+const float TEMP_FEBRE      = 39.5;
 const float TEMP_HIPOTERMIA = 37.0;
 const float TEMP_CRIT_ALTA  = 40.5;
 const float TEMP_CRIT_BAIXA = 36.0;
@@ -120,11 +120,7 @@ const unsigned long INTERVALO_ALERTA = 5000;
 // =========================
 // CONTROLE DO S.O.S
 // =========================
-const int DIT      = 120;
-const int DAH      = 360;
-const int SYM_GAP  = 120;
-const int CHAR_GAP = 360;
-const int SOS_GAP  = 1200;
+const int DIT = 120, DAH = 360, SYM_GAP = 120, CHAR_GAP = 360, SOS_GAP = 1200;
 
 struct Tone { uint16_t freq; uint16_t dur; };
 const Tone SOS_SEQ[] = {
@@ -167,11 +163,9 @@ float lerAceleracao() {
   return sqrt(ax*ax + ay*ay + (az - 1.0)*(az - 1.0));
 }
 
-// Para mudar a temp mexer no DS18B20 - existe um pequeno delay para atualização do valor mas funciona
 float lerTemperatura() {
   ds18b20.requestTemperatures();
   float t = ds18b20.getTempCByIndex(0);
-  // Descarta leituras impossíveis para um animal vivo (sensor frio ou desconectado)
   if (t == DEVICE_DISCONNECTED_C || t < 30.0 || t > 45.0) return g_temp;
   return t;
 }
@@ -201,17 +195,17 @@ Estado avaliarEstado(int bpm, int pres, float temp) {
 }
 
 String motivoAlerta(int bpm, int pres, float temp) {
-  if (bpm > BPM_CRIT)                                   return "Frequencia cardiaca critica";
-  if (bpm > BPM_MAX)                                    return "Frequencia cardiaca elevada";
-  if (bpm < BPM_MIN)                                    return "Frequencia cardiaca baixa";
-  if (pres > PRES_CRIT)                                 return "Pressao arterial critica";
-  if (pres > PRES_MAX)                                  return "Pressao arterial elevada";
-  if (pres < PRES_MIN)                                  return "Pressao arterial baixa";
-  if (temp >= TEMP_CRIT_ALTA)                           return "Hipertermia critica";
-  if (temp <= TEMP_CRIT_BAIXA)                          return "Hipotermia critica";
-  if (temp >= TEMP_FEBRE && g_ativ <= 30)               return "Febre em repouso - verificar imediatamente";
-  if (temp > TEMP_NORMAL_MAX)                           return "Temperatura elevada";
-  if (temp < TEMP_NORMAL_MIN && temp > TEMP_CRIT_BAIXA) return "Hipotermia leve";
+  if (bpm > BPM_CRIT)                                    return "Frequencia cardiaca critica";
+  if (bpm > BPM_MAX)                                     return "Frequencia cardiaca elevada";
+  if (bpm < BPM_MIN)                                     return "Frequencia cardiaca baixa";
+  if (pres > PRES_CRIT)                                  return "Pressao arterial critica";
+  if (pres > PRES_MAX)                                   return "Pressao arterial elevada";
+  if (pres < PRES_MIN)                                   return "Pressao arterial baixa";
+  if (temp >= TEMP_CRIT_ALTA)                            return "Hipertermia critica";
+  if (temp <= TEMP_CRIT_BAIXA)                           return "Hipotermia critica";
+  if (temp >= TEMP_FEBRE && g_ativ <= 30)                return "Febre em repouso - verificar imediatamente";
+  if (temp > TEMP_NORMAL_MAX)                            return "Temperatura elevada";
+  if (temp < TEMP_NORMAL_MIN && temp > TEMP_CRIT_BAIXA)  return "Hipotermia leve";
   return "";
 }
 
@@ -329,31 +323,44 @@ void handleRoot() {
     .card {
       background: #161b22; border: 1px solid #30363d;
       border-radius: 14px; padding: 24px 16px; text-align: center;
+      transition: border-color 0.4s;
     }
     .card .label { font-size: 0.75em; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
     .card .value { font-size: 2.6em; font-weight: bold; color: #58a6ff; transition: color 0.4s; }
     .card .unit  { font-size: 0.8em; color: #8b949e; margin-top: 4px; }
-    .card.alerta  .value { color: #ffd600; }
-    .card.critico .value { color: #ff5555; }
+    .card.alerta  { border-color: #ffd600; } .card.alerta  .value { color: #ffd600; }
+    .card.critico { border-color: #ff5555; } .card.critico .value { color: #ff5555; }
+    .temp-bar-wrap { margin-top: 10px; background: #0d1117; border-radius: 6px; height: 6px; overflow: hidden; }
+    .temp-bar { height: 6px; border-radius: 6px; width: 0%; transition: width 0.6s, background 0.4s; background: #58a6ff; }
     .alerta-box {
       background: #1a1a2e; border: 1px solid #ff555544;
       border-radius: 10px; padding: 14px 20px;
       color: #ff9999; font-size: 0.9em; min-height: 44px; margin-bottom: 16px;
+      transition: all 0.4s;
     }
     .alerta-box.vazio { color: #484f58; border-color: #30363d; }
-    .buzzer-info {
+    .buzzer-panel {
       background: #161b22; border: 1px solid #30363d;
-      border-radius: 10px; padding: 14px 20px;
-      font-size: 0.82em; color: #8b949e; margin-bottom: 16px; line-height: 1.8;
+      border-radius: 10px; padding: 16px 20px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     }
+    .buzzer-icon { font-size: 1.6em; transition: all 0.3s; filter: grayscale(1) opacity(0.3); }
+    .buzzer-icon.ativo { filter: none; animation: buzz 0.3s infinite alternate; }
+    @keyframes buzz { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+    .buzzer-info { flex: 1; font-size: 0.82em; color: #8b949e; line-height: 1.8; }
     .buzzer-info span { color: #e6edf3; font-weight: bold; }
-    .footer { text-align: center; color: #484f58; font-size: 0.75em; margin-top: 16px; }
-    .dot {
-      display: inline-block; width: 8px; height: 8px;
-      border-radius: 50%; background: #00c853;
-      margin-right: 6px; animation: pulse 1.5s infinite;
+    .buzzer-estado {
+      font-size: 0.78em; font-weight: bold; padding: 4px 12px;
+      border-radius: 12px; background: #0d1117; color: #484f58;
+      border: 1px solid #30363d; transition: all 0.4s;
     }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .buzzer-estado.alerta  { color: #ffd600; border-color: #ffd600; background: #1a1600; }
+    .buzzer-estado.critico { color: #ff5555; border-color: #ff5555; background: #1a0000; animation: sosPulse 1s infinite; }
+    @keyframes sosPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .footer { text-align: center; color: #484f58; font-size: 0.75em; margin-top: 16px; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: #00c853; margin-right: 6px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
   </style>
 </head>
 <body>
@@ -385,15 +392,18 @@ void handleRoot() {
       <div class="label">&#127777; Temperatura</div>
       <div class="value" id="temp">--</div>
       <div class="unit">&deg;C</div>
+      <div class="temp-bar-wrap"><div class="temp-bar" id="temp-bar"></div></div>
     </div>
   </div>
   <div class="alerta-box vazio" id="alerta-box">Nenhum alerta no momento.</div>
-  <div class="buzzer-info">
-    &#128276; <span>Alertas sonoros (buzzer GPIO 13):</span><br>
-    &nbsp;&nbsp;Boot &rarr; 3 bipes crescentes de confirma&ccedil;&atilde;o<br>
-    &nbsp;&nbsp;ALERTA &rarr; 2 bipes a cada 5s (freq. 1800 Hz)<br>
-    &nbsp;&nbsp;CR&Iacute;TICO &rarr; S.O.S morse cont&iacute;nuo (... --- ...)<br>
-    &#127777; <span>Febre em repouso (&ge;39.5&deg;C + MPU baixo) &rarr; alerta cr&iacute;tico imediato</span>
+  <div class="buzzer-panel">
+    <div class="buzzer-icon" id="buzzer-icon">&#128276;</div>
+    <div class="buzzer-info">
+      <span>Buzzer GPIO 13</span> &nbsp;&mdash;&nbsp;
+      Boot: 3 bipes &middot; ALERTA: 2 bipes/5s &middot; CR&Iacute;TICO: S.O.S morse<br>
+      &#127777; Febre em repouso (&ge;39.5&deg;C + MPU baixo) &rarr; alerta cr&iacute;tico imediato
+    </div>
+    <div class="buzzer-estado" id="buzzer-estado">SILENCIOSO</div>
   </div>
   <p class="footer">
     <span class="dot"></span>
@@ -402,9 +412,20 @@ void handleRoot() {
   <script>
     const COR   = { OK: '#00c853', ALERTA: '#ffd600', CRITICO: '#ff5555' };
     const LABEL = { OK: 'NORMAL',  ALERTA: 'ALERTA',  CRITICO: 'CR\u00cdTICO' };
+
+    function tempParaPct(t) { return Math.min(100, Math.max(0, ((t - 36) / 5) * 100)); }
+    function tempCor(t) {
+      if (t >= 40.5) return '#ff5555';
+      if (t >= 39.5) return '#ff7700';
+      if (t >= 39.2) return '#ffd600';
+      if (t < 37.0)  return '#58a6ff';
+      return '#00c853';
+    }
+
     async function atualizar() {
       try {
         const d = await (await fetch('/api/dados')).json();
+
         document.getElementById('bpm').textContent       = d.frequenciaCardiaca;
         document.getElementById('pressao').textContent   = d.pressaoSistolica + '/' + d.pressaoDiastolica;
         document.getElementById('ativ').textContent      = d.nivelAtividade;
@@ -412,27 +433,53 @@ void handleRoot() {
         document.getElementById('accel').textContent     = d.aceleracaoTotal;
         document.getElementById('temp').textContent      = d.temperatura;
         document.getElementById('uptime').textContent    = d.uptime;
+
+        const bar = document.getElementById('temp-bar');
+        bar.style.width      = tempParaPct(d.temperatura) + '%';
+        bar.style.background = tempCor(d.temperatura);
+
         const badge = document.getElementById('badge');
-        badge.style.background = COR[d.estado]  || COR.OK;
+        badge.style.background = COR[d.estado] || COR.OK;
         badge.textContent      = LABEL[d.estado] || LABEL.OK;
+
         ['bpm','pressao','ativ','accel','temp'].forEach(id => {
           const c = document.getElementById('card-' + id);
           c.classList.remove('alerta','critico');
           if (d.estado === 'ALERTA')  c.classList.add('alerta');
           if (d.estado === 'CRITICO') c.classList.add('critico');
         });
+
         const box = document.getElementById('alerta-box');
-        if (d.alerta) {
+        if (d.alerta && d.alerta !== '') {
           box.textContent = '\u26A0\uFE0F ' + d.alerta +
             ' | BPM: ' + d.frequenciaCardiaca +
-            ' | Press\u00e3o: ' + d.pressaoSistolica + 'mmHg';
+            ' | Press\u00e3o: ' + d.pressaoSistolica + 'mmHg' +
+            ' | Temp: ' + d.temperatura + '\u00b0C';
           box.classList.remove('vazio');
         } else {
           box.textContent = 'Nenhum alerta no momento.';
           box.classList.add('vazio');
         }
-      } catch(e) { console.error(e); }
+
+        const icon   = document.getElementById('buzzer-icon');
+        const estado = document.getElementById('buzzer-estado');
+        estado.classList.remove('alerta','critico');
+        if (d.estado === 'CRITICO') {
+          icon.classList.add('ativo');
+          estado.textContent = 'S.O.S ATIVO';
+          estado.classList.add('critico');
+        } else if (d.estado === 'ALERTA') {
+          icon.classList.add('ativo');
+          estado.textContent = '2 BIPES / 5s';
+          estado.classList.add('alerta');
+        } else {
+          icon.classList.remove('ativo');
+          estado.textContent = 'SILENCIOSO';
+        }
+
+      } catch(e) { console.error('Erro ao buscar dados:', e); }
     }
+
     atualizar();
     setInterval(atualizar, 3000);
   </script>
@@ -449,29 +496,24 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\n===== PetPulse - Coleira IoT =====");
 
-  // LCD
   ldc.init();
   ldc.backlight();
   ldc.setCursor(0, 0); ldc.print("PetPulse Boot...");
 
-  // LEDs
   pinMode(LED_OK,      OUTPUT);
   pinMode(LED_ALERTA,  OUTPUT);
   pinMode(LED_CRITICO, OUTPUT);
   digitalWrite(LED_OK, HIGH); digitalWrite(LED_ALERTA, HIGH); digitalWrite(LED_CRITICO, HIGH);
 
-  // Buzzer via LEDC (PWM) — API Core 3.x
   ledcAttach(PIN_BUZZER, 1000, BUZZER_RES);
   buzzerBoot();
 
   delay(400);
   digitalWrite(LED_OK, LOW); digitalWrite(LED_ALERTA, LOW); digitalWrite(LED_CRITICO, LOW);
 
-  // DS18B20
   ds18b20.begin();
   Serial.println("[DS18B20] Sensor de temperatura iniciado!");
 
-  // MPU6050
   Wire.begin();
   byte st = mpu.begin();
   if (st == 0) {
@@ -484,7 +526,6 @@ void setup() {
     Serial.printf("[MPU6050] Erro (codigo %d)\n", st);
   }
 
-  // WiFi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL);
   Serial.print("[WiFi] Conectando");
   ldc.setCursor(0, 1); ldc.print("WiFi...         ");
@@ -494,8 +535,9 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   ldc.clear();
+  ldc.setCursor(0, 0); ldc.print("IP:");
+  ldc.setCursor(0, 1); ldc.print(WiFi.localIP());
 
-  // Rotas HTTP
   server.on("/",          handleRoot);
   server.on("/api/dados", handleApiDados);
   server.begin();

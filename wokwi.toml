@@ -1,9 +1,8 @@
 [wokwi]
 version = 1
-elf = "build/esp32.esp32.esp32/PetPulse-Iot.ino.elf"
-firmware = "build/esp32.esp32.esp32/PetPulse-Iot.ino.bin"
+elf      = "build/esp32.esp32.esp32doit-devkit-v1/PetPulse-Iot.ino.elf"
+firmware = "build/esp32.esp32.esp32doit-devkit-v1/PetPulse-Iot.ino.bin"
 
-# Forward http://localhost:8280 to port 80 on the simulated ESP32:
 [[net.forward]]
 from = "0.0.0.0:8280"
-to = "target:80"
+to   = "target:80"
