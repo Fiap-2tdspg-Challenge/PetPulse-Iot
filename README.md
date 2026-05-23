@@ -5,7 +5,9 @@
 
 ## 📌 Visão Geral
 
-A **PetPulse** é uma coleira IoT que monitora continuamente os sinais vitais do pet e transmite os dados em tempo real para um dashboard. O dispositivo simula sensores de frequência cardíaca, pressão arterial e nível de atividade, publica os dados via protocolo **MQTT** e um dashboard **Node-RED** exibe as leituras e dispara alertas inteligentes quando os valores saem dos parâmetros normais.
+A **PetPulse** é uma coleira IoT que monitora continuamente os sinais vitais do pet e transmite os dados em tempo real via **HTTP/WebServer** embutido no ESP32. O dispositivo integra sensores de frequência cardíaca, pressão arterial, temperatura corporal e nível de atividade física, além de atuadores sonoros e visuais para alertas imediatos — sem depender de broker externo ou infraestrutura adicional.
+
+O dashboard é servido diretamente pelo ESP32 na porta 80, acessível via navegador, com atualização automática a cada 3 segundos.
 
 ---
 
@@ -13,55 +15,40 @@ A **PetPulse** é uma coleira IoT que monitora continuamente os sinais vitais do
 
 | Camada | Tecnologia |
 |---|---|
-| Hardware | ESP32 (simulado no Wokwi) |
-| Sensores | 3× Potenciômetros (simula BPM, atividade, pressão) |
-| Atuadores | 3× LEDs (verde / amarelo / vermelho) |
-| Protocolo | MQTT via `PubSubClient` |
-| Broker | `broker.hivemq.com` (público, sem autenticação) |
-| Dashboard | Node-RED + `node-red-dashboard` |
-| Serialização | ArduinoJson (JSON) |
+| Hardware | ESP32 DevKit V1 (simulado no Wokwi) |
+| Sensores | MPU6050 (aceleração/atividade), DS18B20 (temperatura), 2× Potenciômetros (BPM e pressão) |
+| Atuadores | 3× LEDs, Buzzer passivo (PWM via LEDC), LCD I2C 16×2 |
+| Protocolo | HTTP (WebServer na porta 80) |
+| Dashboard | HTML/CSS/JS + Chart.js — servido pelo próprio ESP32 |
+| Serialização | JSON manual (sem biblioteca externa) |
+| Simulador | Wokwi (web ou VS Code com extensão) |
 
 ---
 
-## 📡 Tópicos MQTT
+## 📡 Rotas HTTP
 
-| Tópico | Direção | Descrição |
+| Rota | Método | Descrição |
 |---|---|---|
-| `petpulse/coleira/telemetria` | ESP32 → Node-RED | Publica JSON com todos os sinais vitais |
-| `petpulse/coleira/alerta` | ESP32 → Node-RED | Publica JSON de alerta quando fora do range normal |
-| `petpulse/coleira/config` | Node-RED → ESP32 | Configura o intervalo de coleta em milissegundos |
-| `petpulse/coleira/status` | ESP32 → Node-RED | Indica que o dispositivo está online |
+| `/` | GET | Dashboard HTML completo com gráficos e gauge de saúde |
+| `/api/dados` | GET | JSON com todas as leituras e score de saúde em tempo real |
 
-### Exemplo de payload — Telemetria
+### Exemplo de payload — GET /api/dados
 ```json
 {
   "idDispositivo": "COLLAR-001",
   "pet": "Rex",
   "frequenciaCardiaca": 95,
   "nivelAtividade": 45,
-  "descricaoAtividade": "caminhada",
+  "descAtividade": "caminhada",
+  "aceleracaoTotal": 1.23,
   "pressaoSistolica": 130,
   "pressaoDiastolica": 80,
-  "intervaloColetaMs": 5000,
+  "temperatura": 38.5,
+  "score": 87,
+  "estado": "OK",
+  "alerta": "",
   "uptime": 12345
 }
-```
-
-### Exemplo de payload — Alerta
-```json
-{
-  "dispositivo": "COLLAR-001",
-  "pet": "Rex",
-  "nivel": "ALERTA",
-  "bpm": 155,
-  "pressaoSis": 175,
-  "motivo": "Pressao arterial elevada"
-}
-```
-
-### Exemplo de payload — Config
-```json
-{ "intervaloMs": 10000 }
 ```
 
 ---
@@ -71,43 +58,56 @@ A **PetPulse** é uma coleira IoT que monitora continuamente os sinais vitais do
 | Componente | Pino ESP32 | Função |
 |---|---|---|
 | Potenciômetro 1 | GPIO 34 | Simula frequência cardíaca (40–200 bpm) |
-| Potenciômetro 2 | GPIO 35 | Simula nível de atividade (0–100%) |
-| Potenciômetro 3 | GPIO 32 | Simula pressão sistólica (80–220 mmHg) |
-| LED Verde | GPIO 26 | Pet OK (valores normais) |
-| LED Amarelo | GPIO 27 | Alerta (valores fora do range normal) |
-| LED Vermelho | GPIO 14 | Crítico (valores perigosos) |
+| Potenciômetro 2 | GPIO 35 | Simula pressão sistólica (80–220 mmHg) |
+| MPU6050 | SDA 21 / SCL 22 | Aceleração e classificação de atividade |
+| DS18B20 | GPIO 4 (1-Wire) | Temperatura corporal (°C) |
+| LED Verde | GPIO 18 | Estado OK |
+| LED Amarelo | GPIO 19 | Estado ALERTA |
+| LED Vermelho | GPIO 5 | Estado CRÍTICO |
+| Buzzer passivo | GPIO 13 | Alertas sonoros estruturados |
+| LCD I2C 16×2 | SDA 21 / SCL 22 | Exibe BPM, score e estado |
 
 ---
 
-## 🚀 Como Executar
+## 🔊 Alertas Sonoros (Buzzer)
 
-### 1. Simulação no Wokwi
+| Situação | Padrão Sonoro | Comportamento |
+|---|---|---|
+| Boot | 3 bipes crescentes (800→1200→1600 Hz) | Uma vez, na inicialização |
+| ALERTA | 2 bipes curtos (1800 Hz) | A cada 5 segundos |
+| CRÍTICO | S.O.S morse `... --- ...` | Contínuo e não bloqueante |
+| OK | Silêncio | — |
 
-1. Acesse [wokwi.com](https://wokwi.com) → **New Project** → **ESP32**
-2. Cole o conteúdo de `petpulse_collar.ino` no editor principal
-3. Clique em **"+"** para adicionar arquivo → nome `diagram.json` → cole o conteúdo
-4. Clique em **▶ Start Simulation**
-5. Gire os potenciômetros para simular diferentes leituras
+---
 
-> **Dica:** O Wokwi já possui Wi-Fi embutido com SSID `Wokwi-GUEST` — não precisa de configuração extra.
+## 🧠 Score de Saúde (0–100)
 
-### 2. Dashboard Node-RED
+Calculado no ESP32 a cada leitura, cruzando todos os vitais com pesos ponderados:
 
-**Pré-requisitos:**
-```bash
-# Instalar Node-RED (se não tiver)
-npm install -g --unsafe-perm node-red
+| Vital | Peso | Lógica |
+|---|---|---|
+| Frequência Cardíaca | 35 pts | Desconto proporcional ao desvio da faixa normal |
+| Pressão Sistólica | 30 pts | Idem |
+| Temperatura Corporal | 25 pts | Idem + penalidade extra para febre em repouso |
+| Nível de Atividade | 10 pts | +5 se caminhada saudável, -5 se corrida intensa |
 
-# Instalar o pacote de dashboard
-cd ~/.node-red
-npm install node-red-dashboard
-```
+| Score | Classificação |
+|---|---|
+| 80–100 | ✅ Excelente |
+| 60–79 | 🟢 Bom |
+| 40–59 | 🟡 Atenção |
+| 20–39 | 🟠 Ruim |
+| 0–19 | 🔴 Crítico |
 
-**Importar o fluxo:**
-1. Abra o Node-RED: `http://localhost:1880`
-2. Menu ≡ → **Import** → Cole o conteúdo de `petpulse_nodered_flow.json`
-3. Clique em **Import** → **Deploy**
-4. Acesse o dashboard: `http://localhost:1880/ui`
+---
+
+## 🌡️ Lógica de Cruzamento de Dados
+
+A funcionalidade mais importante do sistema é o **cruzamento de febre com repouso**:
+
+> Se o pet estiver em **repouso** (MPU6050 com aceleração baixa, atividade ≤ 30%) e a **temperatura corporal ≥ 39.5°C**, o sistema dispara estado **CRÍTICO imediatamente** — independente dos outros vitais.
+
+Isso detecta infecções e processos febris que passariam despercebidos em animais quietos.
 
 ---
 
@@ -115,40 +115,90 @@ npm install node-red-dashboard
 
 | Sinal Vital | Normal | Alerta | Crítico |
 |---|---|---|---|
-| Frequência Cardíaca | 60–140 bpm | Fora desse range | > 180 bpm |
-| Pressão Sistólica | 100–160 mmHg | Fora desse range | > 200 mmHg |
-| Nível de Atividade | 0–100% | — | — |
+| Frequência Cardíaca | 60–140 bpm | Fora do range | > 180 bpm |
+| Pressão Sistólica | 100–160 mmHg | Fora do range | > 200 mmHg |
+| Temperatura Corporal | 37.5–39.2°C | Fora do range | > 40.5°C ou < 36.0°C |
+| Febre em Repouso | — | > 39.2°C | ≥ 39.5°C + atividade baixa |
 
 ---
 
-## 🏗️ Arquitetura da Solução
+## 📈 Dashboard HTTP
 
+Acessível em `http://<IP_DO_ESP32>/` (Wokwi web) ou `http://localhost:8280` (VS Code):
+
+- **5 cards de vitais** — BPM, pressão, atividade, aceleração e temperatura com barra de cor dinâmica
+- **Gauge de score de saúde** — semicircular, muda de cor conforme o score
+- **Badge de estado** — NORMAL / ALERTA / CRÍTICO com transição animada
+- **Caixa de alertas** — descreve o motivo, vital e valores no momento do alerta
+- **Gráfico de vitais em tempo real** — Chart.js com 20 pontos rolantes, dois eixos Y (BPM/pressão e temperatura)
+- **Painel do buzzer** — indicador visual animado com estado atual (SILENCIOSO / 2 BIPES / S.O.S ATIVO)
+- **Atualização automática** a cada 3 segundos via `fetch('/api/dados')`
+
+---
+
+## 🚀 Como Executar
+
+### Opção 1 — Wokwi Web
+
+1. Acesse [wokwi.com](https://wokwi.com) → **New Project** → **ESP32**
+2. Cole o conteúdo de `PetPulse-Iot.ino` no editor principal
+3. Clique em **"+"** → adicione `diagram.json` e cole o conteúdo
+4. Em **Library Manager**, adicione: `MPU6050_light`, `ArduinoJson`, `LiquidCrystal_I2C`, `OneWire`, `DallasTemperature`
+5. Clique em **▶ Start Simulation**
+6. Clique no botão de navegador embutido do Wokwi para abrir o dashboard
+
+### Opção 2 — Wokwi for VS Code
+
+1. Instale a extensão **Wokwi Simulator** no VS Code
+2. Compile o projeto no **Arduino IDE** com a placa **DOIT ESP32 DEVKIT V1**
+3. Exporte o binário: `Sketch → Export Compiled Binary`
+4. Confirme que o `wokwi.toml` aponta para o `.bin` correto:
+
+```toml
+[wokwi]
+version = 1
+elf      = "build/esp32.esp32.esp32doit-devkit-v1/PetPulse-Iot.ino.elf"
+firmware = "build/esp32.esp32.esp32doit-devkit-v1/PetPulse-Iot.ino.bin"
+
+[[net.forward]]
+from = "0.0.0.0:8280"
+to   = "target:80"
 ```
-[Coleira ESP32]                    [Broker MQTT]              [Dashboard]
-  Pot1 → BPM         ─publish─►   broker.hivemq.com   ─sub─►  Node-RED
-  Pot2 → Atividade                 :1883                        Gauges
-  Pot3 → Pressão     ◄─subscribe─  topic: config               Charts
-  LED Verde/Amarelo/Vermelho                                     Alertas (toast)
-```
+
+5. Inicie a simulação com `F1 → Wokwi: Start Simulator`
+6. Acesse o dashboard em `http://localhost:8280`
+
+> **Atenção:** Se o simulador carregar uma versão antiga, feche a aba do Wokwi Simulator, reabra com `F1 → Wokwi: Start Simulator` e recarregue o browser.
 
 ---
 
 ## 📁 Arquivos do Projeto
 
-```
-petpulse-iot/
-├── petpulse_collar.ino        # Firmware ESP32
-├── diagram.json               # Circuito Wokwi
-├── petpulse_nodered_flow.json # Fluxo Node-RED
-└── README.md                  # Este arquivo
-```
+PetPulse-Iot/
+├── PetPulse-Iot.ino       # Firmware ESP32 completo
+├── diagram.json           # Circuito Wokwi
+├── libraries.txt          # Dependências do Wokwi web
+├── wokwi.toml             # Configuração do simulador VS Code
+└── README.md              # Este arquivo
+
+---
+
+### libraries.txt
+MPU6050_light
+ArduinoJson
+LiquidCrystal_I2C
+OneWire
+DallasTemperature
 
 ---
 
 ## 🔗 Ligação com o Challenge CLYVO VET
 
 Esta entrega IoT resolve o pilar de **monitoramento contínuo** do desafio:
+
 - **Coleta passiva** de sinais vitais sem depender da interação do responsável
+- **Cruzamento inteligente** de dados (febre + repouso) permite detecção precoce de infecções
+- **Score de saúde 0–100** fornece métrica objetiva e padronizada para triagem veterinária
 - **Alertas em tempo real** permitem intervenção clínica proativa
-- Os dados publicados no MQTT podem ser consumidos pela **API Java/.NET** do grupo para persistência no banco e geração de score de risco do pet
-- O histórico longitudinal de leituras alimenta o módulo de **inteligência** da plataforma CLYVO VET
+- O endpoint `/api/dados` pode ser consumido pela **API Java/.NET** do grupo para persistência em banco de dados e geração de histórico longitudinal
+- O histórico de leituras alimenta o módulo de **inteligência** da plataforma CLYVO VET para análise preditiva do estado de saúde do animal
