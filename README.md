@@ -3,6 +3,21 @@
 
 ---
 
+# Link do vídeo
+https://youtu.be/EtxuK6oE5VM
+
+## Membros 
+Gabriel Neris Losano, RM564093, 2TDSPG
+
+João Vitor Biribilli Ravelli, RM565594, 2TDSPG
+
+Pedro de Matos Previtali, RM564184, 2TDSPG
+
+Pietro Paranhos Wilhelm, RM 561378, 2TDSPG
+
+Felipe Monte de Sousa, RM562019, 2TDSPG
+
+
 ## 🐕 O Problema
 
 Donos de pets e clínicos veterinários enfrentam um desafio crítico: **a maioria das doenças graves em cães só é detectada quando os sintomas já são visíveis** — o que frequentemente significa que o animal já está em sofrimento há horas ou dias.
@@ -87,6 +102,10 @@ Calculado localmente no ESP32 a cada leitura, sem depender de servidor externo:
 O S.O.S morse é executado passo a passo usando `millis()` — o ESP32 nunca trava em `delay()` durante os alertas, mantendo o WebServer e os sensores funcionando normalmente.
 
 ---
+
+## Prints do funcionamento
+![alt text](<Captura de tela 2026-05-23 120324.png>)
+![alt text](<Captura de tela 2026-05-22 223449.png>)
 
 ## 📡 Rotas HTTP
 
